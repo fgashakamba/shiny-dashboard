@@ -1,0 +1,11 @@
+shiny
+shinyswatch
+pandas
+geopandas
+folium
+jinja2
+geopy
+plotly
+shapely
+jenkspy
+pathlib
