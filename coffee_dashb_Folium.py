@@ -10,7 +10,7 @@ from jinja2 import Template
 from geopy.distance import geodesic
 import plotly.graph_objects as go
 from shapely.geometry import Point
-import branca.colormap as cm
+import jenkspy
 from pathlib import Path
 
 # Load and prepare csv data
@@ -52,10 +52,10 @@ def load_data(path):
 
 # load geometry data
 def load_geo_data(path):
-    country = gpd.read_file(f"{path}/Rw_geodata_wgs84.gpkg", layer="country")
-    lakes = gpd.read_file(f"{path}/Rw_geodata_wgs84.gpkg", layer="lakes")
-    parks = gpd.read_file(f"{path}/Rw_geodata_wgs84.gpkg", layer="national_parks")
-    districts = gpd.read_file(f"{path}/Rw_geodata_wgs84.gpkg", layer="districts")
+    country = gpd.read_file(f"{path}/RW_country.gpkg", layer="country")
+    lakes = gpd.read_file(f"{path}/RW_lakes.gpkg", layer="lakes")
+    parks = gpd.read_file(f"{path}/RW_national_parks.gpkg", layer="np")
+    districts = gpd.read_file(f"{path}/RW_districts.gpkg", layer="districts")
     districts['district'] = districts['district'].str.lower() # Convert district names to lowercase   
     return country, lakes, parks, districts
 
@@ -64,7 +64,7 @@ def load_geo_data(path):
 app_ui = ui.page_fluid(   
     ui.tags.style(
         """      
-        /* Keep existing map container styles */
+        /* map container dimensions */
         .map-container {
             height: 770px !important;
             width: 100%;
@@ -113,7 +113,7 @@ app_ui = ui.page_fluid(
             padding-top: 0 !important;
         }
 
-        /* Enhanced metric cards styling */
+        /* Metric cards styling */
         .metric-card, .card {
             border: none !important;
             border-radius: 10px !important;
@@ -128,7 +128,7 @@ app_ui = ui.page_fluid(
 
         .metric-card .card-header, .card .card-header {
             border-radius: 10px 10px 0 0 !important;
-            padding: 12px 20px !important;
+            padding: 5px 20px !important;
             font-size: 0.9rem !important;
             font-weight: 600 !important;
             letter-spacing: 0.5px !important;
@@ -149,6 +149,11 @@ app_ui = ui.page_fluid(
 
         .youth-header {
             background-color: #a4d5af !important;
+            color: white !important;
+        }
+
+        .hh-with-youth-header {
+            background-color: #b5dfce !important;
             color: white !important;
         }
 
@@ -253,10 +258,19 @@ app_ui = ui.page_fluid(
                     class_="metric-card"
                 ),
                 ui.card(
+                    ui.card_header("Households with youth", class_="hh-with-youth-header"),
+                    ui.div(
+                        ui.output_text("hh_with_youth"),
+                        ui.span("% of households with youth", class_="metric-label"),
+                        class_="metric-value"
+                    ),
+                    class_="metric-card"
+                ),
+                ui.card(
                     ui.card_header("Youth in Households", class_="hh-header"),
                     ui.div(
                         ui.output_text("youth_in_hh"),
-                        ui.span("young people in farmers' households", class_="metric-label"),
+                        ui.span("# young people in farmers' households", class_="metric-label"),
                         class_="metric-value"
                     ),
                     class_="metric-card"
@@ -297,13 +311,13 @@ app_ui = ui.page_fluid(
                 ui.row(
                     ui.card(
                         ui.card_header("# Coffee trees per age", class_="women-header"),
-                        ui.output_ui("coffee_trees_chart", height="260px")
+                        ui.output_ui("coffee_trees_chart")
                     )
                 ),
                 ui.row(
                     ui.card(
-                        ui.card_header("# Farmers per training touch points", class_="hh-header"),
-                        ui.output_ui("touch_points_chart", height="260px")
+                        ui.card_header("# Farmers per training touch points", class_="hh-with-youth-header"),
+                        ui.output_ui("touch_points_chart")
                     )
                 )
             )
@@ -315,8 +329,10 @@ app_ui = ui.page_fluid(
 # Define the server function
 def server(input, output, session):
     # Load data
-    geo_data_path = Path("E:/Users/faustin.gashakamba_o/Desktop/data_wgs84")
-    coffee_data_path = Path("E:/Users/faustin.gashakamba_o/Desktop/Coffee Dashboard/data")
+    #-------------------------------
+    current_dir = Path(__file__).parent # Get the directory of the current script
+    coffee_data_path = current_dir / "data" 
+    geo_data_path = current_dir / "data_wgs84"  
     country, lakes, parks, districts = load_geo_data(geo_data_path)
     data_cws, data_farmers, data_farms = load_data(coffee_data_path)
 
@@ -339,8 +355,14 @@ def server(input, output, session):
     
     @output
     @render.text
+    def hh_with_youth():
+        hh_with_youth = data_farmers[data_farmers['youth_in_hh'] != 0].shape[0]
+        return f"{(hh_with_youth / len(data_farmers)) * 100:.1f}%"
+    
+    @output
+    @render.text
     def youth_in_hh():
-        return str(data_farmers['young_in_hh'].dropna().astype(int).sum())
+        return str(data_farmers['youth_in_hh'].dropna().astype(int).sum())
     
     # Initialize reactive value for coordinates
     clicked_coords = reactive.Value({'lat': None, 'lng': None})
@@ -383,7 +405,7 @@ def server(input, output, session):
     #3. Get the nearest CWS to the clicked spot on the CWS map
     @reactive.Calc
     def selected_cws():
-        clicked_spot = clicked_coords()
+        clicked_spot = clicked_coords.get()
         if clicked_spot['lat'] is not None and clicked_spot['lng'] is not None:
             point_coords = (clicked_spot['lat'], clicked_spot['lng'])
             
@@ -408,7 +430,6 @@ def server(input, output, session):
     def _():
         input.map_tabs()
         clicked_coords.set({'lat': None, 'lng': None}) 
-
   
     @output
     @render.ui
@@ -467,17 +488,67 @@ def server(input, output, session):
                        style_function=style_lakes
                        ).add_to(m) 
 
-        # Add farm points
+        # Add CWS points.
+        # we will map the size of the markers to the capacity of each CWS
+
+        # Create 3 classes using Jenks Natural Breaks
+        breaks = jenkspy.jenks_breaks(data_cws['actual_capacity'].values, n_classes=3)
+
+        # Define circle sizes for each class
+        size_classes = [4, 7, 10]  # fatory sizes: small, medium, large
+
+        # Create legend HTML
+        legend_html = f'''
+        <div style="position: fixed; 
+                    bottom: 10px; right: 10px; 
+                    width: 200px; 
+                    border:1px solid rgba(128, 128, 128, 0.6); 
+                    z-index:9999; 
+                    background-color: rgba(255, 255, 255, 0.6);
+                    padding: 12px;
+                    border-radius: 6px;
+                    box-shadow: 0 1px 5px rgba(0,0,0,0.2);">
+            <div style="font-size: 16px; font-weight: bold; margin-bottom: 10px;">
+                Capacity (Tonnes/Season)
+            </div>
+            <div style="display: flex; align-items: center; margin: 8px 0;">
+                <div style="width: 8px; height: 8px; background-color: #011e0b99; border-radius: 50%; margin-right: 8px;"></div>
+                <div>{breaks[0]:.0f} - {breaks[1]:.0f}</div>
+            </div>
+            <div style="display: flex; align-items: center; margin: 8px 0;">
+                <div style="width: 14px; height: 14px; background-color: #011e0b99; border-radius: 50%; margin-right: 8px;"></div>
+                <div>{breaks[1]:.0f} - {breaks[2]:.0f}</div>
+            </div>
+            <div style="display: flex; align-items: center; margin: 8px 0;">
+                <div style="width: 20px; height: 20px; background-color: rgba(1, 30, 11, 0.6); border-radius: 50%; margin-right: 8px;"></div>
+                <div>{breaks[2]:.0f} - {breaks[3]:.0f}</div>
+            </div>
+        </div>'''
+        m.get_root().html.add_child(folium.Element(legend_html))
+
+        # Add points with sizes based on Jenks classes
         for idx, row in data_cws.iterrows():
+            name = row['cws_name'] 
+            capacity = row['actual_capacity']
+            if capacity <= breaks[1]:
+                radius = size_classes[0]
+            elif capacity <= breaks[2]:
+                radius = size_classes[1]
+            else:
+                radius = size_classes[2]
+                
             folium.CircleMarker(
                 location=[row.geometry.y, row.geometry.x],
-                radius=2,
+                radius=radius,
                 color='#011e0b',
+                opacity=0.6, 
                 fill=True,
-                fillOpacity=0.6
+                fillColor='#011e0b', 
+                fillOpacity=0.6,
+                tooltip=f"<strong>Name:</strong> {name}<br><strong>Capacity:</strong> {capacity} Tonnes" 
             ).add_to(m)
 
-        # hightlght farms in the selected district
+        # hightlght currently selected CWSs
         cur_cws = selected_cws()
         if cur_cws is not None and not cur_cws.empty:
             folium.CircleMarker(
@@ -699,7 +770,7 @@ def server(input, output, session):
                 categoryorder='array',
                 categoryarray=["less_3", "3_to_7", "8_to_15", "16_to_30", "more_30"]
             ),
-            height=250,
+            height=260,
             margin=dict(l=10, r=10, t=30, b=10),
             autosize=True,
             paper_bgcolor='rgba(0,0,0,0)',
@@ -759,7 +830,7 @@ def server(input, output, session):
         fig.update_layout(
             yaxis=dict(tickformat=','),
             xaxis=dict(tickangle=45),
-            height=250,
+            height=290,
             margin=dict(l=10, r=10, t=30, b=10),
             autosize=True,
             paper_bgcolor='rgba(0,0,0,0)',
