@@ -376,7 +376,7 @@ ui.tags.style(
                     output_widget("coffee_trees_chart", height="260px")
                 ),
                 ui.card(
-                    ui.card_header("# Farmers per training touch points", class_="hh-header"),
+                    ui.card_header("# Farmers per training touchpoints", class_="hh-header"),
                     output_widget("touch_points_chart", height="260px")
                 )
             )
@@ -429,7 +429,7 @@ def server(input, output, session):
     @output
     @render.text
     def nbr_farmers_young():
-        young = len(data_farmers[data_farmers['age'].astype(int) < 30])
+        young = len(data_farmers[data_farmers['age'].astype(int) < 35])
         return f"{(young / len(data_farmers)) * 100:.1f}%"
     
     @output
@@ -652,7 +652,6 @@ def server(input, output, session):
                 'weight': 2
             }
             
-           
             # Create and add the new layer
             new_layer = GeoData(
                 geo_dataframe=cur_district, 

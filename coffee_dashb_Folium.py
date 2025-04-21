@@ -6,6 +6,7 @@ import shinyswatch
 import pandas as pd
 import geopandas as gpd
 import folium
+from folium.plugins import MarkerCluster
 from jinja2 import Template
 from geopy.distance import geodesic
 import plotly.graph_objects as go
@@ -738,7 +739,10 @@ def server(input, output, session):
                 tooltip=folium.GeoJsonTooltip(fields=["district"])
             ).add_to(m)
 
-        # Add farm points
+        # Create a MarkerCluster layer for the coffee farms
+        marker_cluster_farms = MarkerCluster().add_to(m)
+
+        # Add farm points to the MarkerCluster
         for idx, row in data_farms.iterrows():
             folium.CircleMarker(
                 location=[row.geometry.y, row.geometry.x],
@@ -746,7 +750,7 @@ def server(input, output, session):
                 color='#011e0b',
                 fill=True,
                 fillOpacity=0.6
-            ).add_to(m)
+            ).add_to(marker_cluster_farms)
 
         # hightlght farms in the selected district
         cur_farms = selected_farms()
@@ -760,8 +764,8 @@ def server(input, output, session):
                     fillOpacity=0.6
                 ).add_to(m)
 
-        # attach a click event handler which captures the coordinates of
-        # the click location and sends them to shiny to update the clicked_coords variable
+        # attach a click event handler which captures the coordinates of the click location
+        #  and sends them to shiny to update the clicked_coords variable
         map_name = m.get_name()
         code = """
         {% macro script(this,kwargs) %}
