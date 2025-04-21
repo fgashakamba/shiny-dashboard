@@ -12,3 +12,4 @@ shinyswatch
 shinywidgets
 ipyleaflet
 ipywidgets
+anywidget
