@@ -1,6 +1,4 @@
 shiny
-shinyswatch
-shinywidgets
 pandas
 geopandas
 folium
@@ -10,3 +8,7 @@ plotly
 shapely
 jenkspy
 pathlib
+shinyswatch
+shinywidgets
+ipyleaflet
+ipywidgets
