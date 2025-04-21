@@ -6,6 +6,7 @@ from ipywidgets import HTML
 import geopandas as gpd
 import pandas as pd
 import shinyswatch
+from shapely import wkt
 from shapely.geometry import Point
 from geopy.distance import geodesic
 import plotly.graph_objects as go
@@ -29,11 +30,19 @@ def load_data(path):
         crs="EPSG:4326"
     ).drop('geom', axis=1)
     
-    data_farms = gpd.GeoDataFrame(
-        data_farms, 
-        geometry=gpd.GeoSeries.from_wkt(data_farms['geom']), 
-        crs="EPSG:4326"
-    ).to_crs(epsg=32736) # convert to projected CRS to allow area calculation
+   # define a function to filter out farms with invalid WKT strings
+    def safe_load_wkt(wkt_string):
+        try:
+            return wkt.loads(wkt_string)
+        except Exception:
+            return None
+
+    # Apply the WKT validation function to filter out invalid geometries
+    data_farms['geometry'] = data_farms['geom'].apply(safe_load_wkt)
+    data_farms = data_farms[data_farms['geometry'].notnull()].copy()
+
+    # Convert to GeoDataFrame and project to UTM to allow area calculation
+    data_farms = gpd.GeoDataFrame(data_farms, geometry='geometry', crs='EPSG:4326').to_crs(epsg=32736) 
 
     # Calculate farm areas
     data_farms['area'] = data_farms.area / 100
@@ -1009,7 +1018,7 @@ def server(input, output, session):
         elif current_tab == "CWS View":
             if selected_cws() is not None:
                 cur_cws = str(selected_cws()['cws_id'].values[0])
-                data_farmers_cws = data_farmers[data_farmers['cws_id'] == cur_cws]
+                data_farmers_cws = data_farmers[data_farmers['farmer_cws_id'] == cur_cws]
                 unique_national_ids = data_farmers_cws['national_id'].unique().tolist()
                 filtered_farms = data_farms[data_farms['national_id'].isin(unique_national_ids)]
                 total_area = filtered_farms['area'].sum()
@@ -1035,7 +1044,7 @@ def server(input, output, session):
         elif current_tab == "CWS View":
             if selected_cws() is not None:
                 cur_cws = str(selected_cws()['cws_id'].values[0])
-                data_farmers_cws = data_farmers[data_farmers['cws_id'] == cur_cws]
+                data_farmers_cws = data_farmers[data_farmers['farmer_cws_id'] == cur_cws]
                 unique_national_ids = data_farmers_cws['national_id'].unique().tolist()
                 data_farms_filtered = data_farms[data_farms['national_id'].isin(unique_national_ids)]
             else:
