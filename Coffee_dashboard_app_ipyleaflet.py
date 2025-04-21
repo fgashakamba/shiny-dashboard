@@ -50,27 +50,39 @@ def load_data(path):
 
 # load geometry data
 def load_geo_data(path):
-    country = gpd.read_file(f"{path}/Rw_geodata_wgs84.gpkg", layer="country")
-    lakes = gpd.read_file(f"{path}/Rw_geodata_wgs84.gpkg", layer="lakes")
-    parks = gpd.read_file(f"{path}/Rw_geodata_wgs84.gpkg", layer="national_parks")
-    districts = gpd.read_file(f"{path}/Rw_geodata_wgs84.gpkg", layer="districts")
+    country = gpd.read_file(f"{path}/RW_country.gpkg", layer="country")
+    lakes = gpd.read_file(f"{path}/RW_lakes.gpkg", layer="lakes")
+    parks = gpd.read_file(f"{path}/RW_national_parks.gpkg", layer="np")
+    districts = gpd.read_file(f"{path}/RW_districts.gpkg", layer="districts")
     districts['district'] = districts['district'].str.lower() # Convert district names to lowercase   
     return country, lakes, parks, districts
 
 # define app UI
 app_ui = ui.page_fluid(   
-    ui.tags.style(
-        """      
-        /* Keep existing map container styles */
+ui.tags.style(
+        """   
+        .card > .card-body {
+            padding: 0px !important;
+            margin: 0px !important;
+        }  
+        /* map container dimensions */
         .map-container {
             height: 770px !important;
+            padding: 0 !important;
+            margin: 0 !important;
             width: 100%;
             overflow: hidden;
             position: relative;
+            overflow: hidden !important;
+            background: transparent !important;
         }
         .map-container > * {
             height: 100% !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
         }
+        
         /* bg of the map tabs headers */
         .nav-tabs.card-header-tabs {
             background-color: #e4cfb3 !important;
@@ -83,7 +95,6 @@ app_ui = ui.page_fluid(
             padding: 10px 10px 0 10px !important;
             background-color: #f8f9fa !important;
         }
-
         .nav-tabs .nav-link {
             color: #495057 !important;
             border: none !important;
@@ -93,24 +104,28 @@ app_ui = ui.page_fluid(
             font-weight: 500 !important;
             transition: all 0.2s ease !important;
         }
-
         .nav-tabs .nav-link:hover:not(.active) {
             background-color: #e9ecef !important;
             border: none !important;
         }
-
         .nav-tabs .nav-link.active {
             background-color: #2c3e50 !important;
             color: white !important;
             border: none !important;
         }
 
+        .card-header {
+            background-color: #e4cfb3 !important;
+            border-radius: 10px 10px 0 0 !important;
+            padding: 10px !important;
+        }
+
         /* Make card body flush with tabs */
         .card-body {
             padding-top: 0 !important;
+            margin: 0px !important;
         }
-
-        /* Enhanced metric cards styling */
+        /* Metric cards styling */
         .metric-card, .card {
             border: none !important;
             border-radius: 10px !important;
@@ -118,47 +133,43 @@ app_ui = ui.page_fluid(
             transition: transform 0.2s ease-in-out !important;
             margin-bottom: 15px !important;
         }
-
         .metric-card:hover, .card:hover {
             transform: translateY(-3px);
         }
-
         .metric-card .card-header, .card .card-header {
             border-radius: 10px 10px 0 0 !important;
-            padding: 12px 20px !important;
+            padding: 5px 20px !important;
             font-size: 0.9rem !important;
             font-weight: 600 !important;
             letter-spacing: 0.5px !important;
             width: 100% !important;
             margin: 0 !important;
         }
-
         /* Card header colors */
         .farmers-header {
             background-color: #2c3e50 !important;
             color: white !important;
         }
-
         .women-header {
             background-color: #16a085 !important;
             color: white !important;
         }
-
         .youth-header {
             background-color: #a4d5af !important;
             color: white !important;
         }
-
+        .hh-with-youth-header {
+            background-color: #b5dfce !important;
+            color: white !important;
+        }
         .hh-header {
             background-color: #b9cfbe !important;
             color: white !important;
         }
-
         .area-header {
             background-color: #2c3e50 !important;
             color: white !important;
         }
-
         /* Card body styling */
         .metric-value {
             padding: 20px !important;
@@ -167,7 +178,6 @@ app_ui = ui.page_fluid(
             font-weight: 700 !important;
             color: #2c3e50 !important;
         }
-
         /* Labels and units */
         .metric-label {
             display: block;
@@ -175,39 +185,111 @@ app_ui = ui.page_fluid(
             color: #7f8c8d;
             margin-top: 5px;
         }
-
         .metric-trend {
             font-size: 0.9rem;
             color: #27ae60;
             margin-top: 5px;
         }
-
         .metric-trend.positive {
             color: #27ae60;
         }
-
         .metric-trend.negative {
             color: #e74c3c;
         }
-
         /* Chart card specific styling */
         .card:has(div.shiny-plot-output) {
             height: calc(33vh - 20px) !important;
             margin-bottom: 15px !important;
         }
-
         .card:has(div.shiny-plot-output) .card-body {
             padding: 10px !important;
             height: calc(100% - 45px) !important;
         }
-
         .shiny-plot-output {
             height: 100% !important;
             width: 100% !important;
         }
+                
+        /* Fix for specific chart panels being collapsed on initial load */
+        .card:has(div.shiny-html-output#coffee_trees_chart) {
+            height: 320px !important;
+            margin-bottom: 15px !important;
+            }
+
+        .card:has(div.shiny-html-output#touch_points_chart) {
+            height: 350px !important;
+            margin-bottom: 15px !important;
+            }
+
+        /* Style for card bodies containing charts */
+        .card:has(div.shiny-html-output[id$="chart"]) .card-body {
+            padding: 10px !important;
+            height: calc(100% - 45px) !important;
+            position: relative;
+            }
+
+        /* Loading spinner for UI outputs */
+        .loading-spinner-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            }
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 2s linear infinite;
+            }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+            }
+
+        /* Make sure containers are positioned relatively for absolute positioning of spinner */
+        .card:has(div.shiny-html-output), .shiny-html-output {
+            position: relative;
+            min-height: 50px;
+            }
         """
     ),
-    
+    ui.tags.script("""
+        // Add spinners to all UI outputs on page load
+        $(document).ready(function() {
+        // Add spinners initially to all UI outputs
+        $('.shiny-html-output').each(function() {
+            var $this = $(this);
+            $this.css('position', 'relative');
+            $this.append('<div class="loading-spinner-container"><div class="loading-spinner"></div></div>');
+        });
+        });
+
+        // Handle updates - remove spinner when content arrives
+        $(document).on('shiny:value', function(event) {
+        var $target = $('#' + event.target.id);
+        $target.find('.loading-spinner-container').remove();
+        });
+
+        // Add spinner back when output is recalculating
+        $(document).on('shiny:outputinvalidated', function(event) {
+        var $target = $('#' + event.target.id);
+        
+        if ($target.hasClass('shiny-html-output')) {
+            $target.css('position', 'relative');
+            $target.append('<div class="loading-spinner-container"><div class="loading-spinner"></div></div>');
+        }
+        });
+    """),
+        
     ui.row(
         ui.column(12,
             ui.div(
@@ -279,40 +361,48 @@ app_ui = ui.page_fluid(
             ),
 
             ui.column(3,
-                ui.row(
-                    ui.card(
-                        ui.card_header("Total Cultivated Area", class_="area-header"),
-                        ui.div(
-                            ui.output_text("farm_area"),
-                            ui.span("Hectares", class_="metric-label"),
-                            #ui.div("↑ 3.2% from last season", class_="metric-trend positive"),
-                            class_="metric-value"
-                        ),
-                        class_="metric-card"
-                    )
+                ui.card(
+                    ui.card_header("Total Cultivated Area", class_="area-header"),
+                    ui.div(
+                        ui.output_text("farm_area"),
+                        ui.span("Hectares", class_="metric-label"),
+                        #ui.div("↑ 3.2% from last season", class_="metric-trend positive"),
+                        class_="metric-value"
+                    ),
+                    class_="metric-card"
                 ),
-                ui.row(
-                    ui.card(
-                        ui.card_header("# Coffee trees per age", class_="women-header"),
-                        output_widget("coffee_trees_chart", height="260px")
-                    )
+                ui.card(
+                    ui.card_header("# Coffee trees per age", class_="women-header"),
+                    output_widget("coffee_trees_chart", height="260px")
                 ),
-                ui.row(
-                    ui.card(
-                        ui.card_header("# Farmers per training touch points", class_="hh-header"),
-                        output_widget("touch_points_chart", height="260px")
-                    )
+                ui.card(
+                    ui.card_header("# Farmers per training touch points", class_="hh-header"),
+                    output_widget("touch_points_chart", height="260px")
                 )
             )
         )
+    ),
+    # Remove spinners when the content is fully loaded
+    ui.tags.script("""
+        $(document).on('shiny:outputinvalidated', function(event) {
+        var $target = $('#' + event.target.id);
+
+        $(document).on('shiny:value', function(event) {
+        var $target = $('#' + event.target.id);
+        
+        // Remove spinner if it exists
+        $target.find('.loading-spinner-container').remove();
+        });
+        """
     ),
     theme=shinyswatch.theme.flatly
 )
 
 def server(input, output, session):
     # Load data
-    geo_data_path = Path("E:/Users/faustin.gashakamba_o/Desktop/data_wgs84")
-    coffee_data_path = Path("E:/Users/faustin.gashakamba_o/Desktop/Coffee Dashboard/data")
+    current_dir = Path(__file__).parent # Get the directory of the current script
+    coffee_data_path = current_dir / "data" 
+    geo_data_path = current_dir / "data_wgs84"  
     country, lakes, parks, districts = load_geo_data(geo_data_path)
     data_cws, data_farmers, data_farms = load_data(coffee_data_path)
     

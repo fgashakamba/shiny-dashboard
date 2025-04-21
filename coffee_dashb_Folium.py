@@ -63,22 +63,35 @@ def load_geo_data(path):
 # App UI
 app_ui = ui.page_fluid(   
     ui.tags.style(
-        """      
+        """   
+        .card > .card-body {
+            padding: 0px !important;
+            margin: 0px !important;
+        }  
         /* map container dimensions */
         .map-container {
             height: 770px !important;
+            padding: 0 !important;
+            margin: 0 !important;
             width: 100%;
             overflow: hidden;
             position: relative;
+            overflow: hidden !important;
+            background: transparent !important;
         }
         .map-container > * {
             height: 100% !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
         }
+        
         /* bg of the map tabs headers */
         .nav-tabs.card-header-tabs {
             background-color: #e4cfb3 !important;
             border-radius: 10px 10px 0 0 !important;
         }
+
         /* style of the headers of map tabs */
         .nav-tabs {
             border-bottom: none !important;
@@ -103,9 +116,17 @@ app_ui = ui.page_fluid(
             color: white !important;
             border: none !important;
         }
+
+        .card-header {
+            background-color: #e4cfb3 !important;
+            border-radius: 10px 10px 0 0 !important;
+            padding: 10px !important;
+        }
+
         /* Make card body flush with tabs */
         .card-body {
             padding-top: 0 !important;
+            margin: 0px !important;
         }
         /* Metric cards styling */
         .metric-card, .card {
@@ -191,8 +212,7 @@ app_ui = ui.page_fluid(
             height: 100% !important;
             width: 100% !important;
         }
-        /* Fix for card headers not filling full width */
-
+                
         /* Fix for specific chart panels being collapsed on initial load */
         .card:has(div.shiny-html-output#coffee_trees_chart) {
             height: 320px !important;
@@ -348,34 +368,28 @@ app_ui = ui.page_fluid(
                             ui.output_ui("map_farms"),
                             class_="map-container"
                         )
-                    ), id="map_tabs" 
+                    ), id="map_tabs"
                 )
             ),
 
             ui.column(3,
-                ui.row(
-                    ui.card(
-                        ui.card_header("Total Cultivated Area", class_="area-header"),
-                        ui.div(
-                            ui.output_text("farm_area"),
-                            ui.span("Hectares", class_="metric-label"),
-                            #ui.div("↑ 3.2% from last season", class_="metric-trend positive"),
-                            class_="metric-value"
-                        ),
-                        class_="metric-card"
-                    )
+                ui.card(
+                    ui.card_header("Total Cultivated Area", class_="area-header"),
+                    ui.div(
+                        ui.output_text("farm_area"),
+                        ui.span("Hectares", class_="metric-label"),
+                        #ui.div("↑ 3.2% from last season", class_="metric-trend positive"),
+                        class_="metric-value"
+                    ),
+                    class_="metric-card"
                 ),
-                ui.row(
-                    ui.card(
-                        ui.card_header("# Coffee trees per age", class_="women-header"),
-                        ui.output_ui("coffee_trees_chart")
-                    )
+                ui.card(
+                    ui.card_header("# Coffee trees per age", class_="women-header"),
+                    ui.output_ui("coffee_trees_chart")
                 ),
-                ui.row(
-                    ui.card(
-                        ui.card_header("# Farmers per training touch points", class_="hh-with-youth-header"),
-                        ui.output_ui("touch_points_chart")
-                    )
+                ui.card(
+                    ui.card_header("# Farmers per training touch points", class_="hh-with-youth-header"),
+                    ui.output_ui("touch_points_chart")
                 )
             )
         )
