@@ -23,6 +23,10 @@ def load_data(path):
     data_cws.columns = data_cws.columns.str.lower()
     data_farmers.columns = data_farmers.columns.str.lower()
     data_farms.columns = data_farms.columns.str.lower()
+
+    # convert farmer_cws to lower case
+    data_farmers = data_farmers[data_farmers['farmer_cws'].notna()]
+    data_farmers['farmer_cws'] = data_farmers['farmer_cws'].str.lower().str.replace(' ', '_')
     
     data_cws = gpd.GeoDataFrame(
         data_cws, 
@@ -419,7 +423,7 @@ def server(input, output, session):
     # for demo purposes, let's assign CWS IDs from the cws dataset to the farmers
     import random
     cws_ids = data_cws['cws_id'].unique()
-    data_farmers['cws_id'] = random.choices(cws_ids, k=len(data_farmers))
+    data_farmers['farmer_cws'] = random.choices(cws_ids, k=len(data_farmers))
     data_farms['cws_id'] = random.choices(cws_ids, k=len(data_farms))
     #-----------------------------------------------------------------------------------
 
@@ -1018,7 +1022,7 @@ def server(input, output, session):
         elif current_tab == "CWS View":
             if selected_cws() is not None:
                 cur_cws = str(selected_cws()['cws_id'].values[0])
-                data_farmers_cws = data_farmers[data_farmers['farmer_cws_id'] == cur_cws]
+                data_farmers_cws = data_farmers[data_farmers['farmer_cws'] == cur_cws]
                 unique_national_ids = data_farmers_cws['national_id'].unique().tolist()
                 filtered_farms = data_farms[data_farms['national_id'].isin(unique_national_ids)]
                 total_area = filtered_farms['area'].sum()
@@ -1044,7 +1048,7 @@ def server(input, output, session):
         elif current_tab == "CWS View":
             if selected_cws() is not None:
                 cur_cws = str(selected_cws()['cws_id'].values[0])
-                data_farmers_cws = data_farmers[data_farmers['farmer_cws_id'] == cur_cws]
+                data_farmers_cws = data_farmers[data_farmers['farmer_cws'] == cur_cws]
                 unique_national_ids = data_farmers_cws['national_id'].unique().tolist()
                 data_farms_filtered = data_farms[data_farms['national_id'].isin(unique_national_ids)]
             else:
@@ -1099,7 +1103,7 @@ def server(input, output, session):
         elif current_tab == "CWS View":
             if selected_cws() is not None:
                 cur_cws = str(selected_cws()['cws_id'].values[0])
-                data_farmers_filtered = data_farmers[data_farmers['cws_id'] == cur_cws]
+                data_farmers_filtered = data_farmers[data_farmers['farmer_cws'] == cur_cws]
             else:
                 data_farmers_filtered = data_farmers
         else:
