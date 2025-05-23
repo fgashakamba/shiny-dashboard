@@ -437,7 +437,8 @@ def server(input, output, session):
     @output
     @render.text
     def nbr_farmers():
-        return str(len(data_farmers))
+        return f"{len(data_farmers):,.0f}"
+     
     
     @output
     @render.text
@@ -460,7 +461,8 @@ def server(input, output, session):
     @output
     @render.text
     def youth_in_hh():
-        return str(data_farmers['youth_in_hh'].dropna().astype(int).sum())
+        youth_in_hh = data_farmers['youth_in_hh'].dropna().astype(int).sum()
+        return f"{youth_in_hh:,.0f}"
     
     # Initialize reactive value for coordinates
     clicked_coords = reactive.Value({'lat': None, 'lng': None})
